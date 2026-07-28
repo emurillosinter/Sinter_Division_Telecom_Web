@@ -1,0 +1,36 @@
+{
+  "catalogo": [
+    {
+      "id": "COM-001",
+      "categoria": "Comunicaciones",
+      "descripcion": "Punto de datos instalación en cielo (Data outlet/access point)",
+      "unidad_medida": "c.u.",
+      "costo_unitario": 163.21,
+      "tipo": "Servicio"
+    },
+    {
+      "id": "COM-002",
+      "categoria": "Comunicaciones",
+      "descripcion": "JACK RJ45 CAT6A AZUL NEWLINK P/N",
+      "unidad_medida": "c.u.",
+      "costo_unitario": 174.62,
+      "tipo": "Material"
+    },
+    {
+      "id": "COM-003",
+      "categoria": "Comunicaciones",
+      "descripcion": "Cable UTP Cat 6 (o Cat 6A) LSZH",
+      "unidad_medida": "m",
+      "costo_unitario": 11.99,
+      "tipo": "Material"
+    },
+    {
+      "id": "ACI-001",
+      "categoria": "Alarma contra incendios",
+      "descripcion": "Detector de humo tipo fotoeléctrico",
+      "unidad_medida": "c.u.",
+      "costo_unitario": 350.28,
+      "tipo": "Equipo"
+    }
+  ]
+}

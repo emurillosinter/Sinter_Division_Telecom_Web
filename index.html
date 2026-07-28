@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sinter Telecom | Sistema de Cotizaciones</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <!-- SDK de Supabase Auth -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js para Gráficos Estadísticos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Pantalla Bloqueada de Login -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-brand">
+                <img src="resources/img/sinter 4.png" alt="Sinter Telecom">
+            </div>
+            <h2>Acceso al Sistema</h2>
+            <p class="login-subtitle">Cotizador Comercial de Telecomunicaciones</p>
+            
+            <form id="login-form">
+                <label>Correo Corporativo
+                    <input type="email" id="login-user" placeholder="usuario@sinter.com.ni" required autocomplete="username" />
+                </label>
+                <label>Contraseña
+                    <input type="password" id="login-pass" placeholder="••••••••" required autocomplete="current-password" />
+                </label>
+
+                <div style="text-align: right; margin-top: -5px;">
+                    <button type="button" id="btn-forgot-pass" class="text-link">¿Olvidaste tu contraseña?</button>
+                </div>
+                
+                <div id="login-error" class="login-error" hidden></div>
+
+                <button type="submit" class="button primary wide" id="btn-submit-login">Ingresar al Cotizador</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Navegación Global (Sidebar Oscuro) -->
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="resources/img/sinter 4.png" alt="Sinter Telecom">
+        </div>
+        
+        <nav aria-label="Navegación del Sistema">
+            <button class="nav-item active" data-view="workspace" id="btn-new-project">
+                <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg></span> 
+                Nuevo Proyecto
+            </button>
+            <button class="nav-item" data-view="historial">
+                <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span> 
+                Historial Ofertas
+            </button>
+            <button class="nav-item" data-view="reportes" id="nav-reportes">
+                <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> 
+                Reportes y Métricas
+            </button>
+            <button class="nav-item" data-view="basedatos" id="nav-basedatos">
+                <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span> 
+                Base de Datos
+            </button>
+            <button class="nav-item" data-view="usuarios" id="nav-usuarios" hidden>
+                <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span> 
+                Gestión Usuarios
+            </button>
+        </nav>
+        
+        <div class="sidebar-note">
+            <strong id="user-name-display">División de Telecom</strong><br />
+            <span id="user-role-display" style="color: #94a3b8; font-size: 11px;">Usuario Activo</span>
+            <button id="logout-btn" class="logout-btn">Cerrar Sesión</button>
+        </div>
+    </aside>
+
+    <main>
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">MODULO COMERCIAL</p>
+                <h1 id="view-title">Espacio de Trabajo</h1>
+            </div>
+            <div class="header-actions">
+                <span id="autosave-status" class="autosave-badge"><span class="dot"></span> Guardado automático</span>
+                <button class="button primary" id="print-quote">Generar Carta Oferta (PDF)</button>
+            </div>
+        </header>
+
+        <!-- ESPACIO DE TRABAJO -->
+        <section id="workspace-view" class="view active">
+            
+            <div class="workspace-tabs">
+                <button class="wk-tab active" data-step="cliente">1. Info del Cliente</button>
+                <button class="wk-tab" data-step="alcance">2. Alcance de Obra</button>
+                <button class="wk-tab" data-step="presupuesto">3. Presupuesto</button>
+                <button class="wk-tab" data-step="oferta">4. Carta Oferta</button>
+            </div>
+
+            <!-- Paso 1: Info Cliente -->
+            <div id="step-cliente" class="step-view active">
+                <div class="quote-meta card">
+                    <div class="section-heading"><div><h2>Datos Generales</h2><p>Parámetros base para la configuración de la oferta.</p></div><span class="quote-code" id="quote-code"></span></div>
+                    <div class="form-grid">
+                        <label>Proyecto<input id="project" placeholder="Nombre del proyecto" /></label>
+                        <label>Cliente<input id="client" placeholder="Empresa o persona" /></label>
+                        <label>Atención a<input id="contact" placeholder="Persona de contacto" /></label>
+                        <label>Referencia<input id="reference" placeholder="Ej.: OF-2026-001" /></label>
+                        <label>Validez (días)<input id="validity" type="number" min="1" value="30" /></label>
+                        <label>Moneda<select id="currency"><option value="USD">USD – Dólares</option><option value="NIO">NIO – Córdobas</option></select></label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paso 2: Alcance de Obra -->
+            <div id="step-alcance" class="step-view">
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <h2>Definición de Alcances del Proyecto</h2>
+                            <p>Registre aquí únicamente los capítulos o alcances macro (Ej. Comunicaciones, Alarma contra incendios, Mano de Obra).</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input id="new-scope-input" placeholder="Nombre del alcance (Ej: Comunicaciones)" style="max-width: 400px;" />
+                        <button class="button primary" id="add-scope-btn">+ Añadir Alcance</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Índice</th>
+                                    <th>Nombre del Alcance</th>
+                                    <th style="text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scopes-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-scopes" class="empty-state"><div>+</div><strong>Sin alcances definidos</strong><p>Agregue al menos un alcance para estructurar el presupuesto.</p></div>
+                </div>
+            </div>
+
+            <!-- Paso 3: Presupuesto -->
+            <div id="step-presupuesto" class="step-view">
+                <div class="card items-card">
+                    <div class="section-heading">
+                        <div>
+                            <h2>Matriz de Presupuesto y Recursos</h2>
+                            <p>Asigne materiales, mano de obra, márgenes e indirectos a los alcances definidos.</p>
+                        </div>
+                        <button class="button primary" id="open-item-modal">+ Asignar Recurso a Alcance</button>
+                    </div>
+                    
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 24%;">Alcance / Recurso</th>
+                                    <th style="width: 6%;">U/M</th>
+                                    <th style="width: 7%; text-align: center;">Cant.</th>
+                                    <th style="width: 10%;">Costo Unit.</th>
+                                    <th style="width: 10%;">Costo Total</th>
+                                    <th style="width: 9%;">Margen %</th>
+                                    <th style="width: 11%;">Precio Unit.</th>
+                                    <th style="width: 11%;">Precio Venta</th>
+                                    <th style="width: 12%; text-align: center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-items" class="empty-state"><div>+</div><strong>Sin recursos presupuestados</strong><p>Vaya al paso 2 para crear alcances y luego asigne recursos aquí.</p></div>
+                </div>
+
+                <!-- Resumen Económico -->
+                <div class="card summary" style="max-width: 700px; margin: 20px auto 0 auto;">
+                    <h2>Consolidado Económico</h2>
+                    <div class="summary-line"><span>Costo Directo Total</span><strong id="direct-cost">US$0.00</strong></div>
+                    <div class="summary-line"><span>Imprevistos / Indirectos <input id="contingency" type="number" value="5" min="0" max="100" style="width:50px"/>%</span><strong id="contingency-value">US$0.00</strong></div>
+                    <div class="summary-line"><span>Utilidad Bruta Esperada</span><strong id="gross-profit">US$0.00</strong></div>
+                    <div class="summary-line"><span>IVA (15% Fijo)</span><strong id="tax-value">US$0.00</strong></div>
+                    <div class="total-line"><span>GRAN TOTAL</span><strong id="grand-total">US$0.00</strong></div>
+                    <div class="margin-chip" id="overall-margin">Margen global promedio: 0.0%</div>
+                    
+                    <label class="notes-label">Términos y Condiciones<textarea id="notes" rows="6">1. Forma de Pago: A negociar.
+2. Tiempo de Entrega: Inmediata.
+3. Inicio de Ejecución: Al emitir contrato.
+4. Garantía: 12 meses contra defectos de fábrica.</textarea></label>
+                    <button class="button wide primary" id="save-quote">Guardar Proyecto en Nube e Historial</button>
+                </div>
+            </div>
+
+            <!-- Paso 4: Carta Oferta -->
+            <div id="step-oferta" class="step-view">
+                <div class="card" style="min-height: 400px; display: flex; align-items: center; justify-content: center; text-align: center;">
+                    <div>
+                        <h2 style="color: var(--navy); margin-bottom: 15px;">Documento Preparado</h2>
+                        <p style="color: var(--muted); margin-bottom: 20px;">El documento está listo para ser renderizado con el formato oficial de Sinter S.A.</p>
+                        <button class="button primary" onclick="window.print()">Imprimir o Exportar PDF</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA: HISTORIAL -->
+        <section id="historial-view" class="view">
+            <div class="card">
+                <div class="section-heading"><div><h2>Proyectos Guardados</h2><p>Registro local y remoto de cotizaciones emitidas.</p></div></div>
+                <div id="history-list" class="history-list"></div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA: REPORTES Y MÉTRICAS -->
+        <section id="reportes-view" class="view">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <p class="metric-title">TOTAL COTIZADO GLOBAL</p>
+                    <h3 class="metric-value" id="kpi-total-amount">$0.00</h3>
+                    <span class="metric-sub">Acumulado en Supabase</span>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-title">TOTAL PROYECTOS</p>
+                    <h3 class="metric-value" id="kpi-total-quotes">0</h3>
+                    <span class="metric-sub">Cotizaciones emitidas</span>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-title">MARGEN PROMEDIO</p>
+                    <h3 class="metric-value" id="kpi-avg-margin">0.0%</h3>
+                    <span class="metric-sub">Rentabilidad corporativa</span>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-title">TICKET PROMEDIO</p>
+                    <h3 class="metric-value" id="kpi-avg-ticket">$0.00</h3>
+                    <span class="metric-sub">Monto medio por oferta</span>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="card">
+                    <h2>Top 5 Recursos más Cotizados (Monto Acumulado)</h2>
+                    <div style="height: 260px; position: relative;">
+                        <canvas id="chart-top-products"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Participación por Alcances / Capítulos</h2>
+                    <div style="height: 260px; position: relative;">
+                        <canvas id="chart-scopes"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <h2>Matriz de Rotación de Productos y Recursos</h2>
+                        <p>Desglose exacto de cuántas veces se cotizó cada recurso y el volumen total demandado.</p>
+                    </div>
+                    <button class="button secondary" id="btn-refresh-reports">🔄 Actualizar Métricas</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Recurso / Material</th>
+                                <th>Categoría</th>
+                                <th style="text-align: center;">Frecuencia en Ofertas</th>
+                                <th style="text-align: center;">Cantidad Total Solicitada</th>
+                                <th style="text-align: right;">Monto Cotizado Acumulado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rotation-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA: BASE DE DATOS (CATÁLOGO CENTRALIZADO EN SUPABASE) -->
+        <section id="basedatos-view" class="view">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <h2>Catálogo Maestro de Productos</h2>
+                        <p>Administración centralizada de precios y materiales en Supabase.</p>
+                    </div>
+                    <button class="button primary" id="btn-open-create-product-modal">+ Crear Nuevo Producto</button>
+                </div>
+                <div class="catalog-tools"><input id="catalog-search" placeholder="Buscar por descripción o código..." /></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Categoría</th>
+                                <th>U/M</th>
+                                <th>Costo Base ($)</th>
+                                <th>Tipo</th>
+                                <th style="text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalog-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA: GESTIÓN DE USUARIOS -->
+        <section id="usuarios-view" class="view">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <h2>Gestión de Usuarios y Permisos</h2>
+                        <p>Administre el personal autorizado y sus niveles de acceso al cotizador.</p>
+                    </div>
+                    <button class="button primary" id="btn-open-create-user-modal">+ Crear Nuevo Usuario</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Correo Corporativo</th>
+                                <th>Rol Asignado</th>
+                                <th>Permisos Habilitados</th>
+                                <th style="text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer llamado desde el index (Requisito cumplido) -->
+        <div id="footer-container"></div>
+    </main>
+
+    <!-- Modal de Confirmación Estilizado -->
+    <dialog id="confirm-modal">
+        <div class="confirm-card">
+            <div class="confirm-icon">⚠️</div>
+            <h2 id="confirm-modal-title" style="color: var(--navy); font-size: 18px; margin-bottom: 6px;">Confirmación</h2>
+            <p id="confirm-modal-msg" style="font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.5;"></p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" class="button secondary" id="btn-confirm-cancel" style="flex: 1;">Cancelar</button>
+                <button type="button" class="button primary" id="btn-confirm-ok" style="flex: 1;">Aceptar</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Modal: Crear / Editar Producto en Base de Datos -->
+    <dialog id="product-modal">
+        <form method="dialog" class="modal" style="max-width: 480px;">
+            <div class="modal-heading">
+                <div>
+                    <p class="eyebrow">BASE DE DATOS</p>
+                    <h2 id="product-modal-title">Registrar Producto</h2>
+                </div>
+                <button type="button" class="icon-button" onclick="this.closest('dialog').close()">×</button>
+            </div>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 12px;">
+                <label>Código de Producto (ID)
+                    <input type="text" id="prod-id" placeholder="Ej. CABLE-UTP-CAT6" required />
+                </label>
+                <label>Descripción Completa
+                    <input type="text" id="prod-desc" placeholder="Ej. Cable UTP Categoría 6 Chaqueta Azul 305m" required />
+                </label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label>Categoría
+                        <input type="text" id="prod-cat" placeholder="Ej. Cableado" required />
+                    </label>
+                    <label>Tipo
+                        <select id="prod-type">
+                            <option value="Material">Material</option>
+                            <option value="Mano de Obra">Mano de Obra</option>
+                            <option value="Equipo">Equipo</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </label>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label>Unidad de Medida
+                        <input type="text" id="prod-unit" placeholder="Ej. m, Cajas, c.u." required />
+                    </label>
+                    <label>Costo Unitario ($)
+                        <input type="number" id="prod-cost" min="0" step="0.01" placeholder="0.00" required />
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="button secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+                <button class="button primary" type="button" id="btn-save-product">Guardar Producto</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="create-user-modal">
+        <form method="dialog" class="modal" style="max-width: 480px;">
+            <div class="modal-heading">
+                <div>
+                    <p class="eyebrow">ADMINISTRACIÓN</p>
+                    <h2>Registrar Usuario</h2>
+                </div>
+                <button type="button" class="icon-button" onclick="this.closest('dialog').close()">×</button>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 12px;">
+                <label>Nombre Completo<input type="text" id="new-user-fullname" placeholder="Ej. Juan Pérez" required /></label>
+                <label>Correo Corporativo (@sinter.com.ni)<input type="email" id="new-user-email" placeholder="usuario@sinter.com.ni" required /></label>
+                <label>Contraseña Inicial<input type="password" id="new-user-pass" placeholder="••••••••" required /></label>
+                <label>Rol Principal
+                    <select id="new-user-role">
+                        <option value="Cotizador">Cotizador / Comercial</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Visualizador">Visualizador (Solo Lectura)</option>
+                    </select>
+                </label>
+                <div style="border-top: 1px solid var(--line); padding-top: 10px; margin-top: 5px;">
+                    <strong style="font-size: 12px; color: var(--navy); display: block; margin-bottom: 8px;">Permisos Específicos:</strong>
+                    <div style="display: grid; gap: 8px; font-size: 13px;">
+                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="perm-crear-cotizacion" checked /> Crear / Editar Cotizaciones</label>
+                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="perm-editar-catalogo" /> Modificar Catálogo y Precios</label>
+                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" id="perm-gestionar-usuarios" /> Administrar Usuarios del Sistema</label>
+                    </div>
+                </div>
+            </div>
+            <div id="create-user-status" class="login-error" hidden></div>
+            <div class="modal-actions">
+                <button type="button" class="button secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+                <button class="button primary" type="button" id="btn-save-new-user">Crear Usuario</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="forgot-modal">
+        <form method="dialog" class="modal" style="max-width: 420px;">
+            <div class="modal-heading">
+                <div><p class="eyebrow">SEGURIDAD</p><h2>Restablecer Contraseña</h2></div>
+                <button type="button" class="icon-button" onclick="this.closest('dialog').close()">×</button>
+            </div>
+            <p style="font-size: 13px; color: var(--muted); margin-bottom: 15px;">Ingrese su correo corporativo para recibir un enlace de recuperación.</p>
+            <label>Correo (@sinter.com.ni)<input type="email" id="recovery-email" placeholder="usuario@sinter.com.ni" required /></label>
+            <div id="recovery-status" class="login-error" style="background:#ecfdf5; color:#059669; border-color:#a7f3d0;" hidden>✅ Se ha enviado un enlace de recuperación a su correo.</div>
+            <div class="modal-actions">
+                <button type="button" class="button secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+                <button class="button primary" type="button" id="btn-send-recovery">Enviar Enlace</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="update-pass-modal">
+        <form method="dialog" class="modal" style="max-width: 420px;">
+            <div class="modal-heading"><div><p class="eyebrow">SEGURIDAD</p><h2>Nueva Contraseña</h2></div></div>
+            <p style="font-size: 13px; color: var(--muted); margin-bottom: 15px;">Escriba su nueva contraseña para actualizar su cuenta de Sinter.</p>
+            <label>Nueva Contraseña<input type="password" id="new-password-input" placeholder="••••••••" required /></label>
+            <div class="modal-actions"><button class="button primary wide" type="button" id="btn-save-new-password">Guardar Nueva Contraseña</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="item-modal">
+        <form method="dialog" class="modal">
+            <div class="modal-heading">
+                <div><p class="eyebrow">PRESUPUESTO</p><h2>Asignar Recurso a Alcance</h2></div>
+                <button type="button" class="icon-button" onclick="this.closest('dialog').close()">×</button>
+            </div>
+            <div style="margin-bottom: 15px;"><label>Seleccionar Alcance del Proyecto<select id="modal-scope-select" style="font-weight: bold; color: var(--navy);"></select></label></div>
+            <div class="tabs">
+                <button type="button" class="tab active" data-item-mode="catalog">Desde Base de Datos</button>
+                <button type="button" class="tab" data-item-mode="manual">Recurso Manual</button>
+            </div>
+            <div id="catalog-picker">
+                <label>Buscar Recurso en Catálogo<input id="picker-search" placeholder="Escriba el nombre o código del material..." autocomplete="off" /></label>
+                <div id="picker-list" class="picker-list" style="display: none;"></div>
+                <div id="batch-section" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="font-size: 13px; color: var(--navy);">Recursos Seleccionados (<span id="batch-count">0</span>)</strong>
+                        <span style="font-size: 12px; color: var(--muted);">Haz clic en los resultados arriba para agregar más</span>
+                    </div>
+                    <div id="batch-tray" class="batch-tray"><span class="batch-empty-msg">Ningún recurso seleccionado aún. Busca y selecciona arriba.</span></div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <label>Margen General (%)<input id="catalog-margin" type="number" min="0" max="99" maxlength="2" value="30" style="max-width: 120px; text-align: center;" /></label>
+                </div>
+            </div>
+            <div id="manual-picker" hidden class="form-grid">
+                <label>Descripción del Recurso<input id="manual-name" placeholder="Ej. Instalación de ductos" /></label>
+                <label>Tipo de Recurso
+                    <select id="manual-type"><option>Material</option><option>Mano de Obra</option><option>Equipo</option><option>Servicio</option></select>
+                </label>
+                <label>Unidad<input id="manual-unit" value="c.u." /></label>
+                <label>Costo unitario ($)<input id="manual-cost" type="number" min="0" step="0.01" /></label>
+                <label>Margen (%)<input id="manual-margin" type="number" min="0" max="99" maxlength="2" value="30" /></label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="button secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+                <button class="button primary" type="button" id="add-selected">Añadir al Presupuesto</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="edit-item-modal">
+        <form method="dialog" class="modal">
+            <div class="modal-heading">
+                <div><p class="eyebrow">PRESUPUESTO</p><h2>Editar Recurso del Proyecto</h2></div>
+                <button type="button" class="icon-button" onclick="this.closest('dialog').close()">×</button>
+            </div>
+            <div class="form-grid" style="margin-bottom: 15px;">
+                <label>Descripción del Recurso<input id="edit-modal-name" /></label>
+                <label>Alcance Asignado<select id="edit-modal-scope" style="font-weight: bold; color: var(--navy);"></select></label>
+                <label>Unidad de Medida<input id="edit-modal-unit" /></label>
+                <label>Costo Unitario ($)<input id="edit-modal-cost" type="number" min="0" step="0.01" /></label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="button secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+                <button class="button primary" type="button" id="save-edited-item">Guardar Cambios</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="scripts/main.js"></script>
+    <script src="scripts/cotizador.js"></script>
+</body>
+</html>
